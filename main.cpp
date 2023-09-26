@@ -9,8 +9,7 @@ string errorTable[8] = {
     "Illegal TFTP operation.",
     "Unknown transfer ID.",
     "File already exists.",
-    "No such user."
-};
+    "No such user."};
 
 string time_now()
 {
@@ -22,37 +21,39 @@ string time_now()
 
 int main(int argc, char const *argv[])
 {
-    // Usage 
+    // Usage
     // ./main put filePath ipAddress port mode
     // ./main get fileName ipAddress port mode
-    if(argc != 6){
+    if (argc != 6)
+    {
         cout << "Usage: ./main put filePath ipAddress port mode" << endl;
         cout << "Usage: ./main get fileName ipAddress port mode" << endl;
         return 1;
     }
-    logOut.open(time_now()+".log", ios::out);
-    if(!logOut.is_open()){
+    logOut.open(time_now() + ".log", ios::out);
+    if (!logOut.is_open())
+    {
         cout << "log file open error" << endl;
         return 1;
     }
     string mode = argv[5];
-    if(mode != "octet" && mode != "netascii"){
+    if (mode != "octet" && mode != "netascii")
+    {
         cout << "mode error" << endl;
         return 1;
     }
-    if(mode == "netascii"){
-        cout << "netascii mode is not supported" << endl;
-        return 1;
-    }
-    if(argv[1] == string("put")){
+    if (argv[1] == string("put"))
+    {
         tftpUpload upload(argv[2], argv[3], atoi(argv[4]), argv[5]);
         upload.sendFile();
     }
-    else if(argv[1] == string("get")){
+    else if (argv[1] == string("get"))
+    {
         // tftpDownload download(argv[2], argv[3], atoi(argv[4]), argv[5]);
         // download.recvFile();
     }
-    else{
+    else
+    {
         cout << "Usage: ./main put filePath ipAddress port mode" << endl;
         cout << "Usage: ./main get fileName ipAddress port mode" << endl;
         return 1;

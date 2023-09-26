@@ -1,5 +1,6 @@
 #include<iostream>
 #include<fstream>
+#include<iomanip>
 #include<ctime>
 #include<arpa/inet.h>
 #include<sys/socket.h>
@@ -34,8 +35,9 @@ private:
     uint16_t resendTimes=0;
     bool resendFlag=false;
     //其他参数
-    // string processBar="";
-    // string processSpeed="";
+    uint64_t transferredSize=0;
+    clock_t startTime;
+    clock_t currentTime;
 public:
     tftpUpload(string path, string ip, int p, string m);
     void sendFile();

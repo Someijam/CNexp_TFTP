@@ -14,7 +14,8 @@ void tftpUpload::sendFile()
 {
     // 1. 创建socket
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if(sock < 0){
+    if(sock < 0)
+    {
         logOut<<time_now()<<"[ERROR] Create socket error." << endl;
         return;
     }
@@ -32,7 +33,8 @@ void tftpUpload::sendFile()
     // 4. 构造请求报文
     // 4.1. 读取文件
     ifstream fileIn(filePath, ios::in | ios::binary);
-    if(!fileIn.is_open()){
+    if(!fileIn.is_open())
+    {
         logOut<<time_now() <<"[ERROR] Cannot open file." << endl;
         return;
     }
@@ -46,24 +48,28 @@ void tftpUpload::sendFile()
     // 4.3. 构造请求报文的文件名
     fileName=filePath.substr(filePath.find_last_of('/')+1);
     int i=0;
-    for(; i<fileName.size(); i++){
+    for(; i<fileName.size(); i++)
+    {
         sendBuf[2+i] = fileName[i];
     }
     // 4.4. 构造请求报文的模式
     i++;
-    for(int j=0; j<mode.size(); j++){
+    for(int j=0; j<mode.size(); j++)
+    {
         sendBuf[2+i+j] = mode[j];
     }
     sendBuf[4+i+mode.size()] = 0;
     // 5. 发送请求报文
     int sendLen = sendto(sock, sendBuf, 4+i+mode.size()+1, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
-    if(sendLen < 0){
+    if(sendLen < 0)
+    {
         logOut<<time_now() << "[ERROR] Cannot send WRQ pack." << endl;
         return;
     }
     // 6. 接收ACK报文
     socklen_t serverAddrLen = sizeof(serverAddr);
-    while(1){
+    while(1)
+    {
         // 6.1. 设置超时
         struct timeval timeout;
         timeout.tv_sec = TIMEOUT;
@@ -104,16 +110,19 @@ void tftpUpload::sendFile()
         }
     }
     // 7. 发送文件
+    startTime = clock();
     blockNum++;
-    while(1){
+    while(1)
+    {
         // 7.1. 读取文件
         fileIn.read(sendBuf+4, MAX_BUF-4);
         int readLen = fileIn.gcount();
         // 7.2. 构造数据报文
-        sendBuf[0] = 0;
-        sendBuf[1] = 3;
-        sendBuf[2] = (blockNum >> 8) & 0xFF;
-        sendBuf[3] = blockNum & 0xFF;
+        opcode=3;
+        opcode=htons(opcode);
+        memcpy(sendBuf, &opcode, 2);
+        uint16_t nBlockNum=htons(blockNum);
+        memcpy(sendBuf+2, &nBlockNum, 2);
         // 7.3. 发送数据报文
         sendLen = sendto(sock, sendBuf, readLen+4, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
         if(sendLen < 0){
@@ -129,17 +138,21 @@ void tftpUpload::sendFile()
             setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
             // 7.4.2. 接收ACK报文
             int recvLen = recvfrom(sock, recvBuf, MAX_BUF, 0, (struct sockaddr*)&serverAddr, &serverAddrLen);
-            if(recvLen < 0){
-                if(errno == EAGAIN){
+            if(recvLen < 0)
+            {
+                if(errno == EAGAIN)
+                {
                     // 超时重传
                     resendTimes++;
-                    if(resendTimes > 3){
+                    if(resendTimes > 3)
+                    {
                         logOut<<time_now() << "[ERROR] Time out" << endl;
                         return;
                     }
                     logOut<<time_now() << "[INFO] resend " << resendTimes << " times." << endl;
                     sendLen = sendto(sock, sendBuf, readLen+4, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
-                    if(sendLen < 0){
+                    if(sendLen < 0)
+                    {
                         logOut<<time_now() << "[ERROR] Cannot send WRQ pack. Resending "<<resendTimes<<"times." << endl;
                         return;
                     }
@@ -149,20 +162,44 @@ void tftpUpload::sendFile()
                 return;
             }
             // 7.4.3. 检查ACK报文
-            if(recvBuf[0] == 0 && recvBuf[1] == 4){
+            if(recvBuf[0] == 0 && recvBuf[1] == 4)
+            {
                 recvBlockNum = (recvBuf[2] << 8) + recvBuf[3];
-                if(recvBlockNum == blockNum){
+                if(recvBlockNum == blockNum)
+                {
                     logOut << time_now() << "[INFO] Received ACK #" << recvBlockNum << endl;
                     break;
                 }
             }
-            else if(recvBuf[0] == 0 && recvBuf[1] == 5){
+            else if(recvBuf[0] == 0 && recvBuf[1] == 5)
+            {
                 logOut<<time_now() << "[ERROR] Received ERROR #" << (recvBuf[2] << 8) + recvBuf[3] <<" "<<errorTable[int((recvBuf[2] << 8) + recvBuf[3])] << endl;
                 return;
             }
         }
+        transferredSize += readLen;
+        currentTime = clock();
+        double speed=(transferredSize*CLOCKS_PER_SEC)/(currentTime-startTime);// Bps
+        string unit="Bytes/s";
+        if(speed>=1024&&speed<1024*1024)
+        {
+            speed/=1024;
+            unit="KB/s";
+        }
+        else if(speed>=1024*1024&&speed<1024*1024*1024)
+        {
+            speed/=1024*1024;
+            unit="MB/s";
+        }
+        else if(speed>=1024*1024*1024)
+        {
+            speed/=1024*1024*1024;
+            unit="GB/s";
+        }
+        logOut << time_now() << "[INFO] Transferred " << transferredSize<<"/"<<fileSize << " Bytes. Speed "<<setiosflags(ios::fixed)<<setprecision(2)<<speed<<" "<<unit<< endl;
         // 7.5. 检查是否传输完成
-        if(readLen < MAX_BUF-4){
+        if(readLen < MAX_BUF-4)
+        {
             logOut << time_now() << "[INFO] File transfer complete." << endl;
             break;
         }
