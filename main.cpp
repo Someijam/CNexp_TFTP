@@ -44,13 +44,15 @@ int main(int argc, char const *argv[])
     }
     if (argv[1] == string("put"))
     {
+        logOut << time_now() << "[INFO] Start to upload file \"" << argv[2] << "\" to " << argv[3] << ":" << argv[4] <<", mode: "<<argv[5] << endl;
         tftpUpload upload(argv[2], argv[3], atoi(argv[4]), argv[5]);
         upload.sendFile();
     }
     else if (argv[1] == string("get"))
     {
-        // tftpDownload download(argv[2], argv[3], atoi(argv[4]), argv[5]);
-        // download.recvFile();
+        logOut << time_now() << "[INFO] Start to Download file \"" << argv[2] << "\" from " << argv[3] << ":" << argv[4] <<", mode: "<<argv[5] << endl;
+        tftpDownload download(argv[2], argv[3], atoi(argv[4]), argv[5]);
+        download.recvFile();
     }
     else
     {
