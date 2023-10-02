@@ -68,7 +68,7 @@ void tftpDownload::recvFile()
         if(recvLen < 0)
         {
             //超时
-            if(resendTimes<3)
+            if(resendTimes<MAX_RESEND_TIMES)
             {
                 resendTimes++;
                 logOut<<time_now()<<"[INFO] Resend ACK pack #"<<resendTimes<<"."<<endl;

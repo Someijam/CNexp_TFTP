@@ -10,6 +10,7 @@
 using namespace std;
 
 #define TIMEOUT 3
+#define MAX_RESEND_TIMES 5
 #define MAX_BUF 516
 #define DOWNLOAD_PATH "/Users/someijamling/Downloads/"
 

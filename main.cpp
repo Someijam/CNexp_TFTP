@@ -15,7 +15,13 @@ string time_now()
 {
     time_t now = time(0);
     tm *ltm = localtime(&now);
-    string time_now = to_string(1900 + ltm->tm_year) + "-" + to_string(1 + ltm->tm_mon) + "-" + to_string(ltm->tm_mday) + " " + to_string(ltm->tm_hour) + ":" + to_string(ltm->tm_min) + ":" + to_string(ltm->tm_sec);
+    string time_now = to_string(1900 + ltm->tm_year) + "-" + to_string(1 + ltm->tm_mon) + "-" + to_string(ltm->tm_mday) + " " + to_string(ltm->tm_hour) + ":" ;
+    if(ltm->tm_min<10)
+        time_now+="0";
+    time_now+=to_string(ltm->tm_min) + ":" ;
+    if(ltm->tm_sec<10)
+        time_now+="0";
+    time_now+=to_string(ltm->tm_sec);
     return time_now;
 }
 
