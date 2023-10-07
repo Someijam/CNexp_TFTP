@@ -36,7 +36,7 @@ int main(int argc, char const *argv[])
         cout << "Usage: ./main get fileName ipAddress port mode" << endl;
         return 1;
     }
-    logOut.open(time_now() + ".log", ios::out);
+    logOut.open("logs/"+time_now() + ".log", ios::out);
     if (!logOut.is_open())
     {
         cout << "log file open error" << endl;
@@ -51,12 +51,21 @@ int main(int argc, char const *argv[])
     if (argv[1] == string("put"))
     {
         logOut << time_now() << "[INFO] Start to upload file \"" << argv[2] << "\" to " << argv[3] << ":" << argv[4] <<", mode: "<<argv[5] << endl;
+        cerr << "Start to upload file \"" << argv[2] << "\" to " << argv[3] << ":" << argv[4] <<", mode: "<<argv[5] << endl;
         tftpUpload upload(argv[2], argv[3], atoi(argv[4]), argv[5]);
         upload.sendFile();
+        if(upload.fileSize==upload.transferredSize)
+            cerr<< "Upload file \"" << argv[2] << "\" to " << argv[3] << ":" << argv[4] << " successfully." << endl;
+        else
+        {
+            cerr<< "\nUpload file \"" << argv[2] << "\" to " << argv[3] << ":" << argv[4] << " failed." << endl;
+            return 2;
+        } 
     }
     else if (argv[1] == string("get"))
     {
         logOut << time_now() << "[INFO] Start to Download file \"" << argv[2] << "\" from " << argv[3] << ":" << argv[4] <<", mode: "<<argv[5] << endl;
+        cerr<< "Start to Download file \"" << argv[2] << "\" from " << argv[3] << ":" << argv[4] <<", mode: "<<argv[5] << endl;
         tftpDownload download(argv[2], argv[3], atoi(argv[4]), argv[5]);
         download.recvFile();
     }
@@ -64,6 +73,8 @@ int main(int argc, char const *argv[])
     {
         cout << "Usage: ./main put filePath ipAddress port mode" << endl;
         cout << "Usage: ./main get fileName ipAddress port mode" << endl;
+        // example ./main put /Users/someijamling/Desktop/Exp_Crypto/temp.cpp 10.211.55.4 69 octet
+        // example ./main get temp.cpp 10.211.55.4 69 octet
         return 1;
     }
     return 0;

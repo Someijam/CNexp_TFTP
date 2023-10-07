@@ -118,9 +118,13 @@ void tftpUpload::sendFile()
     }
     // 7. 发送文件
     startTime = clock();
+    time_t startTimeStamp;
+    time(&startTimeStamp);
+    // cerr<<startTimeStamp<<endl;
     blockNum++;
     while (1)
     {
+        resendTimes = 0;
         // 7.1. 读取文件
         fileIn.read(sendBuf + 4, MAX_BUF - 4);
         int readLen = fileIn.gcount();
@@ -188,7 +192,7 @@ void tftpUpload::sendFile()
         }
         transferredSize += readLen;
         currentTime = clock();
-        double speed = (transferredSize * CLOCKS_PER_SEC) / (currentTime - startTime); // Bps
+        double speed = (transferredSize * CLOCKS_PER_SEC) / (currentTime - startTime + resendTimes*3*CLOCKS_PER_SEC); // Bps
         string unit = "Bytes/s";
         if (speed >= 1024 && speed < 1024 * 1024)
         {
@@ -206,10 +210,17 @@ void tftpUpload::sendFile()
             unit = "GB/s";
         }
         logOut << time_now() << "[INFO] Transferred " << transferredSize << "/" << fileSize << " Bytes. Speed " << setiosflags(ios::fixed) << setprecision(2) << speed << " " << unit << endl;
+        for(int it=1;it<=transferredSize*50/fileSize;it++)processBar[it]='#';
+        cerr << "\rProcess: " << setiosflags(ios::fixed) << setprecision(2) << (double)transferredSize / fileSize * 100 << "%  "<<processBar<<std::flush;
         // 7.5. 检查是否传输完成
         if (readLen < MAX_BUF - 4)
         {
             logOut << time_now() << "[INFO] File transfer complete." << endl;
+            time_t nowTimeStamp;
+            time(&nowTimeStamp);
+            cerr<<endl;
+            cerr<<"Speed="<<setiosflags(ios::fixed)<<setprecision(2)<<speed<<" "<<unit<<endl;
+            logOut << time_now() << "[INFO] Total time: " <<(nowTimeStamp - startTimeStamp)<< " s." << endl;
             break;
         }
         // 7.6. 更新状态参数

@@ -12,6 +12,8 @@ tftpDownload::tftpDownload(string name, string ip, int p, string m)
 
 void tftpDownload::recvFile()
 {
+    time_t totalStartTime;
+    time(&totalStartTime);
     // 1. 创建socket
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if(sock < 0)
@@ -63,6 +65,12 @@ void tftpDownload::recvFile()
     socklen_t serverAddrLen = sizeof(serverAddr);
     while(true)
     {
+        // 设置超时
+        struct timeval timeout;
+        timeout.tv_sec = TIMEOUT;
+        timeout.tv_usec = 0;
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+        resendTimes=0;
         // 6.1. 接收数据
         int recvLen = recvfrom(sock, recvBuf, MAX_BUF, 0, (struct sockaddr*)&serverAddr, &serverAddrLen);
         if(recvLen < 0)
@@ -72,7 +80,8 @@ void tftpDownload::recvFile()
             {
                 resendTimes++;
                 logOut<<time_now()<<"[INFO] Resend ACK pack #"<<resendTimes<<"."<<endl;
-                sendLen = sendto(sock, sendBuf, 4, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+                if(blockNum!=0)sendLen = sendto(sock, sendBuf, 4, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+                else sendLen = sendto(sock, sendBuf, 4+i+mode.size()+1, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
                 continue;
             }
             else
@@ -131,6 +140,7 @@ void tftpDownload::recvFile()
             logOut<<time_now()<<"[ERROR] Receive data error." << endl;
             return;
         }
+        cerr<<"\rReceived "<<transferredSize<<" Bytes."<<std::flush;
     }
     // 7. 关闭文件
     fileOut.close();
@@ -138,10 +148,13 @@ void tftpDownload::recvFile()
     close(sock);
     // 9. 计算传输速度
     currentTime = clock();
-    double time = (double)(currentTime - startTime) / CLOCKS_PER_SEC;
+    time_t currentTimeStamp;
+    time(&currentTimeStamp);
+    float time = (currentTimeStamp - totalStartTime);
+    if(int(time)==0)time=0.01;//防止除0错误
     double speed = (double)transferredSize / time;
     logOut<<time_now()<<"[INFO] File size: "<<transferredSize<<" bytes."<<endl;
-    logOut<<time_now()<<"[INFO] Time: "<<time<<" s."<<endl;
+    logOut<<time_now()<<"[INFO] Total time: "<<time<<" s."<<endl;
     string unit="Bytes/s";
     if(speed>=1024&&speed<1024*1024)
     {
@@ -159,6 +172,8 @@ void tftpDownload::recvFile()
         unit="GB/s";
     }
     logOut<<time_now()<<"[INFO] Speed: "<<setiosflags(ios::fixed)<<setprecision(2)<<speed<<" "<<unit<<endl;
+    cerr<<endl;
+    cerr<<"Speed="<<setiosflags(ios::fixed)<<setprecision(2)<<speed<<" "<<unit<<endl;
     return;
 }
 
